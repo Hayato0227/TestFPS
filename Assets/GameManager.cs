@@ -18,6 +18,8 @@ public class GameManager : NetworkBehaviour
     }
     public GamePhase nowPhase = GamePhase.Lobby;
 
+    [SerializeField] private GameObject[] respawnPoint;
+
     public void StartHost()
     {
         NetworkManager.Singleton.StartHost();
@@ -79,9 +81,9 @@ public class GameManager : NetworkBehaviour
 
     }
 
-    public void Respawn(GameObject obj)
+    public void Respawn(GameObject obj, PlayerController.Team team)
     {
-        obj.transform.position = new Vector3 (0f, 0f, 0f);
+        obj.transform.position = respawnPoint[(int)team].transform.position;
     } 
 
     //----------チャット用----------

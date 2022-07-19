@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using Unity.Multiplayer.Samples.Utilities.ClientAuthority;
+using DG.Tweening;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -27,7 +27,6 @@ public class PlayerController : NetworkBehaviour
     //変数(固定)
     private float sprintSpeed = 7.5f;
     private float normalSpeed = 5f;
-    private float crouchSpeed = 2f;
     private float airSpeed = 10f;
     private float maxSpeed = 50f;
 
@@ -42,6 +41,7 @@ public class PlayerController : NetworkBehaviour
     private float jumpLongPress = 0f;
     private float unplayableTime = 0f;
     private float playerSpeed = 10f;
+    private float previousHitPoint = 100f;
 
     //武器の数値
     private int rightWeaponNum = 2;
@@ -107,6 +107,13 @@ public class PlayerController : NetworkBehaviour
 
         //HPを反映
         UIManager.instance.ChangeHP(hitPoint.Value);
+        if(previousHitPoint > 0f && hitPoint.Value <= 0f)
+        {
+            //死
+            Dead();
+        }
+        previousHitPoint = hitPoint.Value;
+        
 
         //トリオン回復
         trionPoint += trionHealPower * deltaTime;
@@ -114,7 +121,7 @@ public class PlayerController : NetworkBehaviour
         //トリオンを表示
         UIManager.instance.ChangeTrionPointGUI(trionPoint);
 
-        
+        if (Input.GetKeyDown(KeyCode.K)) Dead();
 
         //マウス操作
         transform.Rotate(0f, Input.GetAxis("Mouse X") * mouseSensitive, 0f);
@@ -498,6 +505,41 @@ public class PlayerController : NetworkBehaviour
             }
 
         }
+    }
+
+    //死ぬ関数
+    public void Dead()
+    {
+        float deadTime = 5f;
+        PlayerFadeOut();
+        unplayableTime = deadTime;
+        Invoke("PlayerFadeIn", deadTime);
+        Invoke("Respawn", deadTime);
+    }
+
+    //消える関数
+    private void PlayerFadeOut()
+    {
+        transform.Find("Rob/Model").GetComponent<Renderer>().material.DOFade(0f, 1f);
+    }
+
+    //出てくる関数
+    private void PlayerFadeIn()
+    {
+        transform.Find("Rob/Model").GetComponent<Renderer>().material.DOFade(1f, 1f);
+    }
+
+    //リスポーン関数
+    public void Respawn()
+    {
+        GameManager.instance.Respawn(this.gameObject, team.Value);
+        ResetHPServerRpc();
+    }
+
+    //HP更新関数
+    [ServerRpc(RequireOwnership = false)] private void ResetHPServerRpc()
+    {
+        hitPoint.Value = 100f;
     }
 } 
  
