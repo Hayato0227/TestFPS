@@ -9,7 +9,7 @@ public class AsteroidController : WeaponController
     private float trionDuration;
     private int trionNum;
 
-    AsteroidController()
+    public AsteroidController()
     {
         maxTrionNum = 5;
         trionPointForGeneration = 10f;

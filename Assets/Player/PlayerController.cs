@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -37,6 +38,7 @@ public class PlayerController : NetworkBehaviour
 
     private float glassHopperTrion = 10f;
 
+
     //変数(変わる数値)
     private float jumpLongPress = 0f;
     private float unplayableTime = 0f;
@@ -46,6 +48,9 @@ public class PlayerController : NetworkBehaviour
     //武器の数値
     private int rightWeaponNum = 2;
     private int leftWeaponNum = 2;
+    public string[] rightTriggerName = new string[3];
+    public string[] leftTriggerName = new string[3];
+
 
     //右手左手に溜めているトリオンのリスト
     public List<GameObject> rightChargedTrion = new();
@@ -419,50 +424,30 @@ public class PlayerController : NetworkBehaviour
     //右手の武器を変更
     private void NextRightWeapon()
     {
+        //一つ前を消す
+        Destroy(rightHand.GetComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller")));
+        //一つ前にする
         rightWeaponNum = (rightWeaponNum + 1) % 3;
 
-        switch(rightWeaponNum)
-        {
-            case 0:  //アステロイド
-                Destroy(rightHand.GetComponent<HaundController>());
-                rightHand.AddComponent<AsteroidController>().Initialize(this, Place.Right, Vector3.one * 0.1f);
-                break;
+        //コントローラーを設定
+        WeaponController weaponCon = (WeaponController)rightHand.AddComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller"));
+        weaponCon.Initialize(this, Place.Right);
 
-            case 1:  //バイパー
-                Destroy(rightHand.GetComponent<AsteroidController>());
-                rightHand.AddComponent<ViperController>().Initialize(this, Place.Right, Vector3.one * 0.1f);
-                break;
-
-            case 2:  //ハウンド
-                Destroy(rightHand.GetComponent<ViperController>());
-                rightHand.AddComponent<HaundController>().Initialize(this, Place.Right, Vector3.one * 0.1f);
-                break;
-        }
         WeaponUIManager.instance.ChangeWeapon(rightWeaponNum, Place.Right);
     }
 
     //左手の武器を変える
     private void NextLeftWeapon()
     {
+        //一つ前を消す
+        Destroy(leftHand.GetComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller")));
+        //一つ前にする
         leftWeaponNum = (leftWeaponNum + 1) % 3;
 
-        switch(leftWeaponNum)
-        {
-            case 0: //シールド
-                Destroy(leftHand.GetComponent<EscudoController>());
-                leftHand.AddComponent<ShieldController>().Initialize(this, Place.Left, Vector3.one);
-                break;
+        //コントローラーを設定
+        WeaponController weaponCon = (WeaponController)leftHand.AddComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller"));
+        weaponCon.Initialize(this, Place.Left);
 
-            case 1: //バリアー
-                Destroy(leftHand.GetComponent<ShieldController>());
-                leftHand.AddComponent<BarrierController>().Initialize(this, Place.Left, Vector3.one);
-                break;
-
-            case 2: //エスクード
-                Destroy(leftHand.GetComponent<BarrierController>());
-                leftHand.AddComponent<EscudoController>().Initialize(this, Place.Left, Vector3.one);
-                break;
-        }
         WeaponUIManager.instance.ChangeWeapon(leftWeaponNum, Place.Left);
     }
 

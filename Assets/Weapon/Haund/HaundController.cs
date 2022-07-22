@@ -9,7 +9,7 @@ public class HaundController : WeaponController
     private int trionNum = 0;
     private GameObject targetObj;
 
-    HaundController()
+    public HaundController()
     {
         maxTrionNum = 5;
         trionPointForGeneration = 30f;

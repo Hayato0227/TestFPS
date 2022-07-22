@@ -23,13 +23,12 @@ public class WeaponController : MonoBehaviour
     protected float trionPointForGeneration;
 
     //トリオン初期設定用
-    public void Initialize(PlayerController playerController, PlayerController.Place place, Vector3 size)
+    public void Initialize(PlayerController playerController, PlayerController.Place place)
     {
         this.playerController = playerController;
         weaponPlace = place;
 
         weaponKey = weaponPlace == PlayerController.Place.Right ? "RightTrigger" : "LeftTrigger";
-        trionSize = size;
     }
 
     //トリオンが使えるときtrue

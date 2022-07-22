@@ -31,9 +31,32 @@ public class UIManager : MonoBehaviour
     [SerializeField] Slider trionPointSlider;
     [SerializeField] Slider hpSlider;
 
+    //プレイヤーのトリガーUI
+    [SerializeField] Image[] rightWeaponImages;
+    [SerializeField] Image[] leftWeaponImages;
+
     //表示時間
     private float trionDuration = 1f;
     private float hpDuration = 1f;
+
+    //武器設定用
+    public string chosenWeaponName = null;
+    public void setChoseWeapon(string str) { chosenWeaponName = str; }
+
+    //UI用
+    public Dictionary<string, Sprite> allWeapons = new Dictionary<string, Sprite>
+    {
+        {"Weapon", Resources.Load<Sprite>("icons/None") },
+        {"Asteroid", Resources.Load<Sprite>("icons/Asteroid") },
+        {"Viper", Resources.Load<Sprite>("icons/Viper") },
+        {"Haund", Resources.Load<Sprite>("icons/Haund") },
+        {"Shield", Resources.Load<Sprite>("icons/Shield") },
+        {"Barrier", Resources.Load<Sprite>("icons/Barrier") },
+        {"Escudo", Resources.Load<Sprite>("icons/Escudo") },
+        {"GlassHopper", Resources.Load<Sprite>("icons/GlassHopper") },
+        {"HookShot", Resources.Load<Sprite>("icons/HookShot") },
+
+    };
 
     // Start is called before the first frame update
     void Start()
@@ -45,6 +68,8 @@ public class UIManager : MonoBehaviour
         ToggleUI(UIName.Information, false);
         ToggleUI(UIName.Setting, false);
         ToggleUI(UIName.Game, false);
+
+
     }
 
     private void Update()
@@ -54,11 +79,7 @@ public class UIManager : MonoBehaviour
             //設定キーが押されたら表示
             if (Input.GetButtonDown("Setting"))
             {
-                ToggleUI(UIName.Setting, true);
-            }
-            else if (Input.GetButtonUp("Setting"))
-            {
-                ToggleUI(UIName.Setting, false);
+                ToggleUI(UIName.Setting, !settingPanel.activeSelf);
             }
         }  
     }
@@ -146,4 +167,6 @@ public class UIManager : MonoBehaviour
         }
         return false;
     }
+
+
 }
