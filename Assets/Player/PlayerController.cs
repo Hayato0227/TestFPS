@@ -36,14 +36,22 @@ public class PlayerController : NetworkBehaviour
     private float mouseSensitive = 0.5f;
     private float trionHealPower = 5f;
 
-    private float glassHopperTrion = 10f;
-
 
     //変数(変わる数値)
     private float jumpLongPress = 0f;
     private float unplayableTime = 0f;
     private float playerSpeed = 10f;
     private float previousHitPoint = 100f;
+
+    public bool isGround = false;
+
+    //フックショット用
+    public NetworkVariable<bool> rightHookShot;
+    public NetworkVariable<bool> leftHookShot;
+    [SerializeField] private LineRenderer rightLineRenderer;
+    [SerializeField] private LineRenderer leftLineRenderer;
+    public Vector3 rightHookShotPos;
+    public Vector3 leftHookShotPos;
 
     //武器の数値
     private int rightWeaponNum = 2;
@@ -104,6 +112,28 @@ public class PlayerController : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
+        //全員、フックショットを表示
+        if (rightHookShot.Value)
+        {
+            rightLineRenderer.enabled = true;
+            rightLineRenderer.SetPosition(0, rightHand.transform.position);
+            rightLineRenderer.SetPosition(1, rightHookShotPos);
+        } 
+        else
+        {
+            rightLineRenderer.enabled = false;
+        }
+        if (leftHookShot.Value)
+        {
+            leftLineRenderer.enabled = true;
+            leftLineRenderer.SetPosition(0, leftHand.transform.position);
+            leftLineRenderer.SetPosition(1, leftHookShotPos);
+        }
+        else
+        {
+            leftLineRenderer.enabled = false;
+        }
+
         //自分のみ操作
         if (!IsOwner) return;
 
@@ -118,7 +148,10 @@ public class PlayerController : NetworkBehaviour
             Dead();
         }
         previousHitPoint = hitPoint.Value;
-        
+
+        //地面判定
+        isGround = Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 1.1f);
+
 
         //トリオン回復
         trionPoint += trionHealPower * deltaTime;
@@ -185,7 +218,7 @@ public class PlayerController : NetworkBehaviour
         } else
         {
             //地面に着いているか判定
-            if (Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 1.1f))
+            if (isGround)
             {
                 //ダッシュ
                 if (Input.GetButton("Sprint"))
@@ -227,42 +260,6 @@ public class PlayerController : NetworkBehaviour
 
                 Vector3 tmpVelocity = GetMoveVector() * airSpeed * deltaTime;
                 rig.velocity += tmpVelocity;
-
-                //グラスホッパーを起動
-                if(Input.GetButtonDown("Jump"))
-                {
-                    if(UseTrion(glassHopperTrion))
-                    {
-                        Vector3 moveVec = GetMoveVector();
-                        if (moveVec.magnitude == 0f)
-                        {
-                            //上向きに生成
-                            TryToGenerateGlassHopper(Quaternion.Euler(0f, 0f, 0f));
-                        }
-                        else
-                        {
-                            //進む向き*70度の向きで生成
-                            TryToGenerateGlassHopper(Quaternion.LookRotation(moveVec) * Quaternion.Euler(70f, 0f, 0f));
-                        }
-                    }
-                }
-                else if(Input.GetButtonDown("Crouch"))
-                {
-                    if(UseTrion(glassHopperTrion))
-                    {
-                        Vector3 moveVec = GetMoveVector();
-                        if (moveVec.magnitude == 0f)
-                        {
-                            //下向きに生成
-                            TryToGenerateGlassHopper(Quaternion.Euler(180f, 0f, 0f));
-                        }
-                        else
-                        {
-                            //進む向き*110度の向きで生成
-                            TryToGenerateGlassHopper(Quaternion.LookRotation(moveVec) * Quaternion.Euler(110f, 0f, 0f));
-                        }
-                    }
-                }
             }
         }
 
@@ -373,8 +370,19 @@ public class PlayerController : NetworkBehaviour
     }
 
     //グラスホッパー生成関数
-    private void TryToGenerateGlassHopper(Quaternion rot)
+    public void TryToGenerateGlassHopper( bool flag)
     {
+        Quaternion rot = Quaternion.identity;
+        Vector3 moveVec = GetMoveVector();
+
+        if(moveVec.magnitude == 0f)
+        {
+            rot = flag ? Quaternion.Euler(0f, 0f, 0f) : Quaternion.Euler(180f, 0f, 0f);
+        } else
+        {
+            rot = flag ? Quaternion.LookRotation(moveVec) * Quaternion.Euler(70f, 0f, 0f) : Quaternion.LookRotation(moveVec) * Quaternion.Euler(110f, 0f, 0f);
+        }
+
         //生成座標計算
         Vector3 pos = transform.position - new Vector3(0f, -0.3f, 0f);
 
@@ -424,6 +432,8 @@ public class PlayerController : NetworkBehaviour
     //右手の武器を変更
     private void NextRightWeapon()
     {
+        if (rightTriggerName[rightWeaponNum] == "") return;
+
         //一つ前を消す
         Destroy(rightHand.GetComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller")));
         //一つ前にする
@@ -439,6 +449,8 @@ public class PlayerController : NetworkBehaviour
     //左手の武器を変える
     private void NextLeftWeapon()
     {
+        if (leftTriggerName[leftWeaponNum] == "") return;
+
         //一つ前を消す
         Destroy(leftHand.GetComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller")));
         //一つ前にする
@@ -449,16 +461,6 @@ public class PlayerController : NetworkBehaviour
         weaponCon.Initialize(this, Place.Left);
 
         WeaponUIManager.instance.ChangeWeapon(leftWeaponNum, Place.Left);
-    }
-
-    private bool UseTrion(float useTrion)
-    {
-        if(trionPoint >= useTrion)
-        {
-            trionPoint -= useTrion;
-            return true;
-        }
-        return false;
     }
 
     [ServerRpc(RequireOwnership = false)] public void DamageServerRpc(float damagePoint)
@@ -525,6 +527,19 @@ public class PlayerController : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)] private void ResetHPServerRpc()
     {
         hitPoint.Value = 100f;
+    }
+
+    //フックショット反映関数
+    [ServerRpc(RequireOwnership = false)] public void HookShotServerRpc(Place place, bool flag)
+    {
+        //右手
+        if(place == Place.Right)
+        {
+            rightHookShot.Value = flag;
+        } else
+        {
+            leftHookShot.Value = flag;
+        }
     }
 } 
  

@@ -32,8 +32,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] Slider hpSlider;
 
     //プレイヤーのトリガーUI
-    [SerializeField] Image[] rightWeaponImages;
-    [SerializeField] Image[] leftWeaponImages;
+    [SerializeField] GameObject[] weaponObjects;
+    [SerializeField] Image[] settingWeaponImages;
 
     //表示時間
     private float trionDuration = 1f;
@@ -44,18 +44,9 @@ public class UIManager : MonoBehaviour
     public void setChoseWeapon(string str) { chosenWeaponName = str; }
 
     //UI用
-    public Dictionary<string, Sprite> allWeapons = new Dictionary<string, Sprite>
+    public string[] allWeaponName =
     {
-        {"Weapon", Resources.Load<Sprite>("icons/None") },
-        {"Asteroid", Resources.Load<Sprite>("icons/Asteroid") },
-        {"Viper", Resources.Load<Sprite>("icons/Viper") },
-        {"Haund", Resources.Load<Sprite>("icons/Haund") },
-        {"Shield", Resources.Load<Sprite>("icons/Shield") },
-        {"Barrier", Resources.Load<Sprite>("icons/Barrier") },
-        {"Escudo", Resources.Load<Sprite>("icons/Escudo") },
-        {"GlassHopper", Resources.Load<Sprite>("icons/GlassHopper") },
-        {"HookShot", Resources.Load<Sprite>("icons/HookShot") },
-
+        "Weapon", "Asteroid", "Viper", "Haund", "Shield", "Barrier", "Escudo", "GlassHopper", "HookShot"
     };
 
     // Start is called before the first frame update
@@ -80,6 +71,7 @@ public class UIManager : MonoBehaviour
             if (Input.GetButtonDown("Setting"))
             {
                 ToggleUI(UIName.Setting, !settingPanel.activeSelf);
+                Cursor.lockState = settingPanel.activeSelf ? CursorLockMode.None : CursorLockMode.Locked;
             }
         }  
     }
@@ -168,5 +160,43 @@ public class UIManager : MonoBehaviour
         return false;
     }
 
+    private int previousWeaponNum = -1;
+    //武器決定関数
+    public void SetWeaponNum(int weaponNum)
+    {
+        //一つ前の色を変える
+        if(previousWeaponNum != -1)
+        {
+            settingWeaponImages[previousWeaponNum].color = Color.white;
+        }
+        //決定した色を赤にする
+        settingWeaponImages[weaponNum].color = Color.red;
+
+        previousWeaponNum = weaponNum;
+    }
+
+    //武器設定関数
+    public void SetWeapon(int weaponNum)
+    {
+        if (previousWeaponNum == -1) return;
+
+        Image img = weaponObjects[weaponNum].transform.Find("Image").gameObject.GetComponent<Image>();
+        Text txt = weaponObjects[weaponNum].GetComponentInChildren<Text>();
+
+        img.sprite = Resources.Load<Sprite>("Icons/" + allWeaponName[previousWeaponNum + 1]);
+        txt.text = allWeaponName[previousWeaponNum + 1];
+
+
+        //右手
+        if (weaponNum >= 3)
+        {
+            NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerController>().rightTriggerName[weaponNum - 3] = txt.text;
+        } 
+        //左手
+        else
+        {
+            NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerController>().leftTriggerName[weaponNum] = txt.text;
+        }
+    }
 
 }
