@@ -9,7 +9,8 @@ public class PlayerController : NetworkBehaviour
 {
     //コンポーネント
     [SerializeField] private Rigidbody rig;
-    public Animator animator;
+    public ClientNetworkAnimator animator;
+    public ClientNetworkAudioSource audioSource;
 
     //アウトレット接続用
     [SerializeField] private GameObject camBase;
@@ -139,8 +140,14 @@ public class PlayerController : NetworkBehaviour
             leftLineRenderer.enabled = false;
         }
 
+        //地面判定
+        isGround = Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 0.8f);
+
         //自分のみ操作
-        if (!IsOwner) return;
+        if (!IsOwner)
+        {
+            return;
+        }
 
         //良く使う変数は予め取得しておく
         float deltaTime = Time.deltaTime;
@@ -160,10 +167,6 @@ public class PlayerController : NetworkBehaviour
             Dead();
         }
         previousHitPoint = hitPoint.Value;
-
-        //地面判定
-        isGround = Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 0.8f);
-
 
         //トリオン回復
         trionPoint += trionHealPower * deltaTime;

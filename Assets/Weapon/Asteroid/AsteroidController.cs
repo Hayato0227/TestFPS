@@ -13,7 +13,7 @@ public class AsteroidController : WeaponController
     {
         maxTrionNum = 5;
         trionPointForGeneration = 10f;
-        trionNum = 1;
+        trionNum = 0;
     }
 
     // Start is called before the first frame update
@@ -45,14 +45,14 @@ public class AsteroidController : WeaponController
 
             trionDuration += Time.deltaTime;
 
-            if(trionDuration > trionNum && trionNum <= maxTrionNum)
+            if(trionDuration > trionNum && trionNum < maxTrionNum)
             {
                 //Œ‚‚Ä‚é‚Æ‚«‚ÍŒ‚‚Â
                 if(UseTrion(trionPointForGeneration))
                 {
                     //Š’èˆÊ’u‚É¶¬
                     playerController.GenerateTrion(transform.position + new Vector3(0f, 0.2f * trionNum, 0.2f), Quaternion.identity, trionSize, weaponPlace);
-
+                    playerController.audioSource.PlayAudio(trionNum);
                     trionNum++;
                 } else
                 {

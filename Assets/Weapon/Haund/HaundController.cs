@@ -58,14 +58,14 @@ public class HaundController : WeaponController
 
             trionDuration += Time.deltaTime;
 
-            if (trionDuration > trionNum && trionNum <= maxTrionNum)
+            if (trionDuration > trionNum && trionNum < maxTrionNum)
             {
                 //Œ‚‚Ä‚é‚Æ‚«‚Í‘Å‚Â
                 if(UseTrion(trionPointForGeneration))
                 {
                     //Š’èˆÊ’u‚É¶¬
                     playerController.GenerateTrion(transform.position + new Vector3(0f, 0.2f * trionNum, 0.2f), Quaternion.identity, trionSize, weaponPlace);
-
+                    playerController.audioSource.PlayAudio(trionNum);
                     trionNum++;
                 } else
                 {
