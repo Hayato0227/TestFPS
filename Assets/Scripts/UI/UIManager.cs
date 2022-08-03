@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -186,16 +187,29 @@ public class UIManager : MonoBehaviour
         img.sprite = Resources.Load<Sprite>("Icons/" + allWeaponName[previousWeaponNum + 1]);
         txt.text = allWeaponName[previousWeaponNum + 1];
 
+        PlayerController tmp = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerController>();
+        //右手、左手のコントローラーをすべて外す
+        for(int i = 0; i < 3; i++)
+        {
+            if (tmp.rightTriggerName[i] != "")
+            {
+                Destroy(tmp.rightHand.GetComponent(Type.GetType(tmp.rightTriggerName[i] + "Controller")));
+            }
+            if (tmp.leftTriggerName[i] != "")
+            {
+                Destroy(tmp.leftHand.GetComponent(Type.GetType(tmp.leftTriggerName[i] + "Controller")));
+            }
+        }
 
         //右手
         if (weaponNum >= 3)
         {
-            NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerController>().rightTriggerName[weaponNum - 3] = txt.text;
+            tmp.rightTriggerName[weaponNum - 3] = txt.text;
         } 
         //左手
         else
         {
-            NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerController>().leftTriggerName[weaponNum] = txt.text;
+            tmp.leftTriggerName[weaponNum] = txt.text;
         }
     }
 

@@ -19,6 +19,10 @@ public class PlayerController : NetworkBehaviour
     public GameObject leftHand;
     [SerializeField] private GameObject glassHopperPrefab;
 
+    //FPS時に自分を非表示
+    [SerializeField] private GameObject model;
+
+
     //防御
     [SerializeField] private GameObject barrierGameObject;
     [SerializeField] private GameObject shieldGameObject;
@@ -40,9 +44,9 @@ public class PlayerController : NetworkBehaviour
     //変数(変わる数値)
     private float jumpLongPress = 0f;
     private float unplayableTime = 0f;
-    private float playerSpeed = 10f;
+    private float playerSpeed = 5f;
     private float previousHitPoint = 100f;
-
+    private bool isFPS = false;
     public bool isGround = false;
 
     //フックショット用
@@ -141,6 +145,13 @@ public class PlayerController : NetworkBehaviour
         //良く使う変数は予め取得しておく
         float deltaTime = Time.deltaTime;
 
+        //FPS、TPSモード切り替え
+        if(Input.GetButtonDown("Camera"))
+        {
+            isFPS = !isFPS;
+            model.SetActive(!model.activeSelf);
+        }
+
         //HPを反映
         UIManager.instance.ChangeHP(hitPoint.Value);
         if(previousHitPoint > 0f && hitPoint.Value <= 0f)
@@ -151,7 +162,7 @@ public class PlayerController : NetworkBehaviour
         previousHitPoint = hitPoint.Value;
 
         //地面判定
-        isGround = Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 1.1f);
+        isGround = Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 0.8f);
 
 
         //トリオン回復
@@ -174,21 +185,29 @@ public class PlayerController : NetworkBehaviour
         }
 
         //カメラ位置計算
-        Vector3 camPos = cam.transform.position - transform.position;
-        RaycastHit[] hits = Physics.RaycastAll(transform.position, camPos, 5f);
-        if(hits.Length > 0)
+        if(isFPS)
         {
-            foreach (RaycastHit hit in hits)
+            cam.transform.position = camBase.transform.position + new Vector3(0f, 0.5f, 0f);
+        }
+        else
+        {
+            Vector3 camPos = camBase.transform.TransformDirection(new Vector3(1, 1, -5));
+            RaycastHit[] hits = Physics.RaycastAll(camBase.transform.position, camPos, 5f);
+            if (hits.Length > 0)
             {
-                if (!hit.collider.isTrigger)
+                foreach (RaycastHit hit in hits)
                 {
-                    cam.transform.position = transform.position + camPos.normalized * hit.distance * 0.9f;
+                    if (!hit.collider.isTrigger)
+                    {
+                        cam.transform.position = camBase.transform.position + camPos.normalized * hit.distance * 0.9f;
+                    }
                 }
             }
-        } else
-        {
-            cam.transform.position = transform.position + camPos.normalized * 5f;
-        }
+            else
+            {
+                cam.transform.position = camBase.transform.position + camPos.normalized * 5f;
+            }
+        }     
 
         //トリオン使用量調整
         if(Input.mouseScrollDelta.y > 0f)
@@ -222,13 +241,9 @@ public class PlayerController : NetworkBehaviour
             if (isGround)
             {
                 //ダッシュ
-                if (Input.GetButton("Sprint"))
+                if (Input.GetButtonDown("Sprint"))
                 {
-                    playerSpeed = sprintSpeed;
-                }
-                else  //普通
-                {
-                    playerSpeed = normalSpeed;
+                    playerSpeed = playerSpeed == sprintSpeed ? normalSpeed : sprintSpeed;
                 }
 
                 //移動
@@ -242,12 +257,15 @@ public class PlayerController : NetworkBehaviour
                 //ジャンプ
                 if (Input.GetButtonUp("Jump"))
                 {
-
-                    Jump();
-                    unplayableTime += 0.3f; //操作できない時間を追加
+                    Jump(jumpLongPress);
 
                     animator.SetBool("IsFlying", true);
-                } else
+                }
+                //スライディング
+                else if (Input.GetButtonDown("Crouch")) {
+                    animator.SetTrigger("Sliding");
+                } 
+                else
                 {
                     //アニメーションを設定
                     animator.SetBool("IsFlying", false);
@@ -256,6 +274,17 @@ public class PlayerController : NetworkBehaviour
             }
             else  //ジャンプ中は前後に少しだけ移動できる
             {
+                //もし前に壁があるなら壁キック
+                if(Input.GetButtonDown("Jump"))
+                {
+                    if (Physics.Raycast(transform.position, transform.forward, 0.5f))
+                    {
+                        rig.velocity = -transform.forward * playerSpeed;
+                        animator.SetTrigger("WallJump");
+                        Jump(maxJumpPower);
+                    }
+                }
+
                 //ジャンプアニメーション
                 animator.SetBool("IsFlying", true);
 
@@ -324,10 +353,11 @@ public class PlayerController : NetworkBehaviour
     }
 
     //ジャンプ用関数
-    private void Jump()
+    private void Jump(float power)
     {
-        float jumpPower = jumpLongPress > 1f ? 1f : jumpLongPress;
+        float jumpPower = power > 1f ? 1f : power;
         rig.AddForce(Vector3.up * jumpPower * maxJumpPower, ForceMode.VelocityChange);
+        unplayableTime += 0.2f;
     }
 
     //クライアント側トリオン生成関数

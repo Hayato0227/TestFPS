@@ -18,9 +18,12 @@ public class GlassHopperController : WeaponController
             //ƒWƒƒƒ“ƒv‚ª‰Ÿ‚³‚ê‚½‚Æ‚«
             if(Input.GetButtonDown("Jump"))
             {
-                if(UseTrion(trionPointForGeneration))
+                if (!Physics.Raycast(transform.root.transform.position, transform.root.transform.forward, 0.5f))
                 {
-                    playerController.TryToGenerateGlassHopper(true);
+                    if (UseTrion(trionPointForGeneration))
+                    {
+                        playerController.TryToGenerateGlassHopper(true);
+                    }
                 }
             }
             //‰º‚É”ò‚Ô‚Æ‚«

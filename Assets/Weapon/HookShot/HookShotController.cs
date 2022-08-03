@@ -29,7 +29,7 @@ public class HookShotController : WeaponController
 
                         //‚­‚Á‚Â‚«‚ğİ’è
                         springJoint.autoConfigureConnectedAnchor = false;
-                        springJoint.massScale = playerController.GetComponent<Rigidbody>().mass;
+                        springJoint.massScale = playerController.GetComponent<Rigidbody>().mass / 2f;
                         springJoint.connectedAnchor = hit.point;
 
                         //ü‚Ì•`‰æ‚ÌˆÊ’u‚ğİ’è
