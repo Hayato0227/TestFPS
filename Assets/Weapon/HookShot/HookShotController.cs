@@ -25,10 +25,7 @@ public class HookShotController : WeaponController
                         playerController.HookShotServerRpc(weaponPlace, true);
 
                         //スプリングジョイントを設定
-                        springJoint = transform.root.gameObject.AddComponent<SpringJoint>();
-
-                        //距離を計算
-                        springJoint.maxDistance = (playerController.trionPower + 1) * 5f;
+                        springJoint = transform.root.gameObject.AddComponent<SpringJoint>();      
 
                         //くっつきを設定
                         springJoint.autoConfigureConnectedAnchor = false;
@@ -53,6 +50,12 @@ public class HookShotController : WeaponController
         {
             playerController.HookShotServerRpc(weaponPlace, false);
             Destroy(springJoint);
+        }
+
+        if (springJoint != null)
+        {
+            //距離を計算
+            springJoint.maxDistance = (playerController.trionPower + 1) * 5f;
         }
     }
 

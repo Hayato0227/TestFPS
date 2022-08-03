@@ -100,6 +100,7 @@ public class PlayerController : NetworkBehaviour
         if (IsOwner)
         {
             camBase.SetActive(true);
+            GameManager.instance.Respawn(gameObject, Team.None);
         }
 
         if (IsServer)
@@ -181,7 +182,7 @@ public class PlayerController : NetworkBehaviour
             {
                 if (!hit.collider.isTrigger)
                 {
-                    cam.transform.position = hit.point;
+                    cam.transform.position = transform.position + camPos.normalized * hit.distance * 0.9f;
                 }
             }
         } else
