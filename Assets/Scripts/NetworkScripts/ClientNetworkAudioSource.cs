@@ -28,7 +28,7 @@ public class ClientNetworkAudioSource : NetworkBehaviour
             m_AudioSourceForStep.volume = 0f;
         } else
         {
-            float value = Mathf.Clamp(m_Rigidbody.velocity.magnitude, 0f, 30f) / 30f;
+            float value = Mathf.Clamp(m_Rigidbody.velocity.magnitude, 0f, 7.5f) / 7.5f;
             m_AudioSourceForStep.pitch = value + 1.5f;
             if (IsOwner) value *= 0.1f;
             m_AudioSourceForStep.volume = value;
