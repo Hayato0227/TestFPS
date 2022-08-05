@@ -88,7 +88,7 @@ public class TrionController : NetworkBehaviour
         //サーバー側は消去
         if (IsServer && mode != Mode.Equip)
         {
-            if (duration > lifeTime) GetComponent<NetworkObject>().Despawn();
+            if (duration > lifeTime) Destroy(gameObject);
         }
 
         //クライアントは制御
@@ -130,7 +130,7 @@ public class TrionController : NetworkBehaviour
             if (other.transform.root.gameObject == NetworkManager.Singleton.LocalClient.PlayerObject.gameObject) return;
 
             //敵のダメージ関数を呼ぶ
-            other.transform.root.GetComponent<PlayerController>().DamageServerRpc(transform.localScale.x * 50f);
+            other.transform.root.GetComponent<PlayerController>().DamageServerRpc(transform.localScale.x * 50f, NetworkManager.Singleton.LocalClientId);
 
             //自身を消去
             DestroyServerRpc();
@@ -139,9 +139,8 @@ public class TrionController : NetworkBehaviour
 
     [ServerRpc(RequireOwnership = false)] private void DestroyServerRpc()
     {
-        Destroy(gameObject);
+        gameObject.GetComponent<NetworkObject>().Despawn();
     }
-
     private void OnTriggerExit(Collider other)
     {
         if (!CheckMyBarrier(other.transform)) return;

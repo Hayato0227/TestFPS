@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode.Transports.UNET;
 using Unity.Netcode;
+using UnityEngine.UI;
 
 public class TitleManager : MonoBehaviour
 {
@@ -26,8 +27,16 @@ public class TitleManager : MonoBehaviour
         }
     }
 
-    public void SetIpAddress(string address)
+    [SerializeField] private InputField ipadressInputField;
+    public void SetIpAddress()
     {
-        uNetTransport.ConnectAddress = address;
+        uNetTransport.ConnectAddress = ipadressInputField.text;
+    }
+
+    public string playerName;
+    [SerializeField] private InputField playerNameInputField;
+    public void SetPlayerName()
+    {
+        playerName = playerNameInputField.text;
     }
 }

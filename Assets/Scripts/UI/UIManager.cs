@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
 using Unity.Netcode;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
@@ -24,7 +25,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] GameObject settingPanel;
     [SerializeField] GameObject gamePanel;
 
-    public InputField ipadressInputField;
     [SerializeField] private GameObject targetObject;
 
     //ゲーム中パネル
@@ -66,7 +66,7 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
-        if(GameManager.instance.nowPhase != GameManager.GamePhase.Lobby)
+        if(BattleManager.Singleton.battlePhase.Value == BattleManager.BattlePhase.Lobby)
         {
             //設定キーが押されたら表示
             if (Input.GetButtonDown("Setting"))
@@ -210,6 +210,25 @@ public class UIManager : MonoBehaviour
         else
         {
             tmp.leftTriggerName[weaponNum] = txt.text;
+        }
+    }
+
+    [SerializeField] private TMP_Text timeText;
+    public void ChangeTime(int time)
+    {
+        timeText.text = time.ToString();
+    }
+
+    [SerializeField] private TMP_Text[] teamPointText;
+    public void AddTeamPoint(int point, BattleManager.Team team)
+    {
+        if(team == BattleManager.Team.Red)
+        {
+            teamPointText[0].text = point.ToString();
+        }
+        else if(team == BattleManager.Team.Blue)
+        {
+            teamPointText[1].text = point.ToString();
         }
     }
 

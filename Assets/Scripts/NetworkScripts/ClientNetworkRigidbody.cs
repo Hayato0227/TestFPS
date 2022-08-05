@@ -15,7 +15,6 @@ public class ClientNetworkRigidbody : NetworkBehaviour
     private void FixedUpdate()
     {
         if (IsOwner) SendInformationServerRpc(m_Rigidbody.velocity);
-        else Debug.Log(m_Rigidbody.velocity.magnitude);
     }
 
     [ServerRpc(RequireOwnership = false)] private void SendInformationServerRpc(Vector3 vel)

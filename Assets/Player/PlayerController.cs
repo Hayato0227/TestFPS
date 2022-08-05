@@ -4,11 +4,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using DG.Tweening;
+using UnityEngine.Events;
+using TMPro;
+using Unity.Collections;
 
 public class PlayerController : NetworkBehaviour
 {
     //コンポーネント
     [SerializeField] private Rigidbody rig;
+    public Outline outline;
     public ClientNetworkAnimator animator;
     public ClientNetworkAudioSource audioSource;
 
@@ -34,7 +38,7 @@ public class PlayerController : NetworkBehaviour
     private float sprintSpeed = 7.5f;
     private float normalSpeed = 5f;
     private float airSpeed = 10f;
-    private float maxSpeed = 50f;
+    private float maxSpeed = 15f;
 
     private float maxJumpPower = 10f;
     
@@ -51,8 +55,8 @@ public class PlayerController : NetworkBehaviour
     public bool isGround = false;
 
     //フックショット用
-    public NetworkVariable<bool> rightHookShot;
-    public NetworkVariable<bool> leftHookShot;
+    public NetworkVariable<bool> rightHookShot = new(false);
+    public NetworkVariable<bool> leftHookShot = new NetworkVariable<bool>(true);
     [SerializeField] private LineRenderer rightLineRenderer;
     [SerializeField] private LineRenderer leftLineRenderer;
     public Vector3 rightHookShotPos;
@@ -75,15 +79,9 @@ public class PlayerController : NetworkBehaviour
     public int trionPower = 0;
 
     //チーム用
-    public enum Team
-    {
-        Alpha,
-        Beta,
-        Gamma,
-        Delta,
-        None
-    }
-    public NetworkVariable<Team> team = new();
+    public NetworkVariable<BattleManager.Team> team = new(BattleManager.Team.None);
+    public NetworkVariable<FixedString32Bytes> playerName = new();
+    [SerializeField] private TMP_Text playerTag;
 
     public enum Place
     {
@@ -102,22 +100,58 @@ public class PlayerController : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        playerName.OnValueChanged += ChangePlayerNameCallBack;
+
         if (IsOwner)
         {
             camBase.SetActive(true);
-            GameManager.instance.Respawn(gameObject, Team.None);
+            StageManager.Singleton.Respawn(gameObject, team.Value);
+
+            //プレイヤーの名前を設定
+            string playerName = TitleManager.instance.playerName;
+            if (playerName.Length > 10) playerName = playerName.Substring(0, 10);
+            ChangePlayerNameServerRpc(playerName);
         }
 
         if (IsServer)
         {
             //チームなしに設定
-            team.Value = Team.None;
+            team.Value = BattleManager.Team.None;
+        }
+    }
+    private void OnDestroy()
+    {
+        playerName.OnValueChanged -= ChangePlayerNameCallBack;
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        if(playerName.Value != "" && !IsOwner)
+        {
+            playerTag.text = playerName.Value.ToString();
         }
     }
 
     // Update is called once per frame
     void Update()
     {
+        //アウトライン変更
+        switch(team.Value)
+        {
+            case BattleManager.Team.Blue:
+                outline.OutlineColor = Color.blue;
+                break;
+
+            case BattleManager.Team.Red:
+                outline.OutlineColor = Color.red;
+                break;
+
+            default:
+                outline.OutlineColor = Color.white;
+                break;
+        }
+
         //全員、フックショットを表示
         if (rightHookShot.Value)
         {
@@ -159,14 +193,8 @@ public class PlayerController : NetworkBehaviour
             model.SetActive(!model.activeSelf);
         }
 
-        //HPを反映
+        //HP.を反映
         UIManager.instance.ChangeHP(hitPoint.Value);
-        if(previousHitPoint > 0f && hitPoint.Value <= 0f)
-        {
-            //死
-            Dead();
-        }
-        previousHitPoint = hitPoint.Value;
 
         //トリオン回復
         trionPoint += trionHealPower * deltaTime;
@@ -174,7 +202,22 @@ public class PlayerController : NetworkBehaviour
         //トリオンを表示
         UIManager.instance.ChangeTrionPointGUI(trionPoint);
 
-        if (Input.GetKeyDown(KeyCode.K)) Dead();
+        //ボタンチェック
+        RaycastHit buttonHit;
+        if(Physics.Raycast(cam.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0.1f)), out buttonHit, isFPS ? 2f : 10f))
+        {
+            if (buttonHit.collider.CompareTag("Button"))
+            {
+                if(Input.GetButtonDown("RightTrigger"))
+                {
+                    buttonHit.collider.GetComponent<EventHolder>().Invoke();
+                }
+                else
+                {
+                    buttonHit.collider.GetComponent<EventHolder>().OutlineOn();
+                }
+            }
+        }
 
         //マウス操作
         transform.Rotate(0f, Input.GetAxis("Mouse X") * mouseSensitive, 0f);
@@ -251,6 +294,7 @@ public class PlayerController : NetworkBehaviour
 
                 //移動
                 Vector3 tmpVelocity = GetMoveVector() * playerSpeed;
+                if (tmpVelocity.magnitude == 0f) playerSpeed = normalSpeed;
                 tmpVelocity.y = rig.velocity.y;
                 rig.velocity = tmpVelocity;
 
@@ -291,8 +335,9 @@ public class PlayerController : NetworkBehaviour
                 //ジャンプアニメーション
                 animator.SetBool("IsFlying", true);
 
+                //移動
                 Vector3 tmpVelocity = GetMoveVector() * airSpeed * deltaTime;
-                rig.velocity += tmpVelocity;
+                rig.velocity += tmpVelocity + Vector3.down * deltaTime * 10f;
             }
         }
 
@@ -497,9 +542,16 @@ public class PlayerController : NetworkBehaviour
         WeaponUIManager.instance.ChangeWeapon(leftWeaponNum, Place.Left);
     }
 
-    [ServerRpc(RequireOwnership = false)] public void DamageServerRpc(float damagePoint)
+    [ServerRpc(RequireOwnership = false)] public void DamageServerRpc(float damagePoint, ulong id)
     {
+        //同じチームの時は何もしない
+        if (NetworkManager.Singleton.ConnectedClients[id].PlayerObject.GetComponent<PlayerController>().team.Value == team.Value) return;
+
         hitPoint.Value -= damagePoint;
+        if(hitPoint.Value <= 0f)
+        {
+            BattleManager.Singleton.Kill(id, GetComponent<NetworkObject>().OwnerClientId);
+        }
     }
 
     private void StepClimb()
@@ -528,39 +580,9 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    //死ぬ関数
-    public void Dead()
+    [ClientRpc] public void RespawnClientRpc()
     {
-        float deadTime = 5f;
-        PlayerFadeOut();
-        unplayableTime = deadTime;
-        Invoke("PlayerFadeIn", deadTime);
-        Invoke("Respawn", deadTime);
-    }
-
-    //消える関数
-    private void PlayerFadeOut()
-    {
-        transform.Find("Rob/Model").GetComponent<Renderer>().material.DOFade(0f, 1f);
-    }
-
-    //出てくる関数
-    private void PlayerFadeIn()
-    {
-        transform.Find("Rob/Model").GetComponent<Renderer>().material.DOFade(1f, 1f);
-    }
-
-    //リスポーン関数
-    public void Respawn()
-    {
-        GameManager.instance.Respawn(this.gameObject, team.Value);
-        ResetHPServerRpc();
-    }
-
-    //HP更新関数
-    [ServerRpc(RequireOwnership = false)] private void ResetHPServerRpc()
-    {
-        hitPoint.Value = 100f;
+        if (IsOwner) StageManager.Singleton.Respawn(gameObject, team.Value);
     }
 
     //フックショット反映関数
@@ -574,6 +596,20 @@ public class PlayerController : NetworkBehaviour
         {
             leftHookShot.Value = flag;
         }
+    }
+
+    private void ChangeOutlineColor()
+    {
+
+    }
+
+    [ServerRpc(RequireOwnership = false)] public void ChangePlayerNameServerRpc(string name)
+    {
+        playerName.Value = name;
+    }
+    private void ChangePlayerNameCallBack(FixedString32Bytes pre, FixedString32Bytes next)
+    {
+        playerTag.text = next.ToString();
     }
 } 
  
