@@ -46,6 +46,7 @@ public class HaundController : WeaponController
 
             //向いている向きに発射 & ターゲット指定
             playerController.ChangeTrionMode(playerController.GetLookingRotaion(), weaponPlace, TrionController.Mode.Chase, playerController.trionPower, targetObj);
+            if (Input.GetButtonUp(weaponKey)) playerController.audioSource.PlayAudio(6);
 
             trionDuration = 0f;
             trionNum = 0;
@@ -64,7 +65,7 @@ public class HaundController : WeaponController
                 if(UseTrion(trionPointForGeneration))
                 {
                     //所定位置に生成
-                    playerController.GenerateTrion(transform.position + new Vector3(0f, 0.2f * trionNum, 0.2f), Quaternion.identity, trionSize, weaponPlace);
+                    playerController.GenerateTrion(transform.position + new Vector3(0f, 0.2f * trionNum, 0.2f), weaponPlace);
                     playerController.audioSource.PlayAudio(trionNum);
                     trionNum++;
                 } else

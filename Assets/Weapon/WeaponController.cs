@@ -10,9 +10,6 @@ public class WeaponController : MonoBehaviour
     //トリオン生成位置
     protected PlayerController.Place weaponPlace;
 
-    //トリオンサイズ
-    protected Vector3 trionSize = Vector3.one * 0.1f;
-
     //トリオン生成キー
     protected string weaponKey;
 

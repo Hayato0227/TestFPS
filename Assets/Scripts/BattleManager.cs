@@ -13,17 +13,22 @@ public class BattleManager : NetworkBehaviour
         Lobby,
         Battle
     }
-    public NetworkVariable<BattlePhase> battlePhase = new(BattlePhase.Lobby);
+    public NetworkVariable<BattlePhase> battlePhase;
 
     public enum GameMode
     {
         Normal,
         King
     };
-    public NetworkVariable<GameMode> gameMode = new(GameMode.Normal);
+    public NetworkVariable<GameMode> gameMode;
 
-    public NetworkVariable<int> redTeamPoint = new(0);
-    public NetworkVariable<int> blueTeamPoint = new(0);
+    public NetworkVariable<int> redTeamPoint;
+    public NetworkVariable<int> blueTeamPoint;
+
+    public NetworkVariable<int> battleTime;
+
+    private ulong redKing;
+    private ulong blueKing;
 
     public enum Team
     {
@@ -39,11 +44,14 @@ public class BattleManager : NetworkBehaviour
         Singleton = this;
         redTeamPoint.OnValueChanged += AddRedPointCallBack;
         blueTeamPoint.OnValueChanged += AddBluePointCallBack;
+        battleTime.OnValueChanged += TimeChangeCallBack;
     }
+
     private void OnDestroy()
     {
         redTeamPoint.OnValueChanged -= AddRedPointCallBack;
         blueTeamPoint.OnValueChanged -= AddBluePointCallBack;
+        battleTime.OnValueChanged -= TimeChangeCallBack;
     }
 
     private void FixedUpdate()
@@ -52,7 +60,6 @@ public class BattleManager : NetworkBehaviour
     }
 
     //ゲーム開始
-    public NetworkVariable<int> battleTime;
     [ServerRpc(RequireOwnership = false)] public void StartGameServerRpc()
     {
         //バトル開始
@@ -64,7 +71,7 @@ public class BattleManager : NetworkBehaviour
         else
         {
             battlePhase.Value = BattlePhase.Lobby;
-            GameManager.instance.SendLogServerRpc("No Contest.");
+            GameManager.instance.SendLogServerRpc("Game Stopped");
             StopAllCoroutines();
             ResetPlayerStatus();
         }
@@ -73,21 +80,30 @@ public class BattleManager : NetworkBehaviour
     {
         GameManager tmp = GameManager.instance;
         ResetPoint();
-        tmp.SendLogServerRpc("Starting Game in");
+        tmp.SendLogServerRpc("Game Starting in ...");
+        battlePhase.Value = BattlePhase.Battle;
 
         yield return new WaitForSeconds(2f);
+        GameManager.instance.PlayBGMClientRpc(BattlePhase.Battle);
 
-        for(int i = 3; i > 0; i--)
+        for (int i = 3; i > 0; i--)
         {
-            tmp.SendLogServerRpc(i.ToString());
+            tmp.SendLogServerRpc("Game Starting in " + i.ToString());
             yield return new WaitForSeconds(1f);
         }
 
-        battlePhase.Value = BattlePhase.Battle;
         tmp.SendLogServerRpc("Game Start");
+        GameManager.instance.PlayerSEClientRpc(0);
 
         //全員を転送
         StageManager.Singleton.RespawnClientRpc();
+
+        //キングを設定
+        if(gameMode.Value == GameMode.King)
+        {
+            SetNewKing(Team.Red, true);
+            SetNewKing(Team.Blue, true);
+        }
 
         //ゲーム中
         while(battleTime.Value > 0f)
@@ -97,9 +113,23 @@ public class BattleManager : NetworkBehaviour
         }
 
         //ゲーム終了
-        tmp.SendLogServerRpc("Game Over!!");
-        StageManager.Singleton.RespawnClientRpc();
+        tmp.SendLogServerRpc("Game Over");
+        GameManager.instance.PlayerSEClientRpc(0);
         battlePhase.Value = BattlePhase.Lobby;
+
+        //キング解消
+        if(gameMode.Value == GameMode.King)
+        {
+            SetNewKing(Team.Red, false);
+            SetNewKing(Team.Blue, false);
+        }
+
+        if (blueTeamPoint.Value == redTeamPoint.Value) tmp.SendLogServerRpc("Draw!");
+        else tmp.SendLogServerRpc("Team " + (redTeamPoint.Value > blueTeamPoint.Value ? "Red" : "Blue") + " Win!");
+
+        yield return new WaitForSeconds(1f);
+        GameManager.instance.PlayBGMClientRpc(BattlePhase.Lobby);
+        StageManager.Singleton.RespawnClientRpc();
         ResetPlayerStatus();
     }
 
@@ -109,14 +139,28 @@ public class BattleManager : NetworkBehaviour
         PlayerController killerController = NetworkManager.Singleton.ConnectedClients[killer].PlayerObject.gameObject.GetComponent<PlayerController>();
         PlayerController victimController = NetworkManager.Singleton.ConnectedClients[victim].PlayerObject.gameObject.GetComponent<PlayerController>();
 
-        GameManager.instance.SendLogServerRpc(killerController.playerName + " killed " + victimController.playerName + ".");
-        Debug.Log(killerController.name + "(" + killer + ")が" + victimController.playerName + "(" + victim + ")をキルしました。");
+        GameManager.instance.SendLogServerRpc(killerController.playerName.Value.ToString() + " killed " + victimController.playerName.Value.ToString() + ".");
+        Debug.Log(killerController.playerName.Value.ToString() + "(" + killer + ")が" + victimController.playerName.Value.ToString() + "(" + victim + ")をキルしました。");
 
         switch(gameMode.Value)
         {
             //キングモード
             case GameMode.King:
+                if(victimController.OwnerClientId == redKing || victimController.OwnerClientId == blueKing)
+                {
+                    //キングの場合は得点を加算
+                    if (killerController.team.Value == Team.Red)
+                    {
+                        redTeamPoint.Value++;
+                    }
+                    else if(killerController.team.Value == Team.Blue)
+                    {
+                        blueTeamPoint.Value++;
+                    }
 
+                    //キングを設定
+                    SetNewKing(victimController.team.Value, true);
+                }
                 break;
 
             //素直に得点加算
@@ -136,11 +180,70 @@ public class BattleManager : NetworkBehaviour
         victimController.RespawnClientRpc();
         victimController.hitPoint.Value = 100f;
     }
+    /// <summary>
+    /// キング生成関数
+    /// </summary>
+    /// <param name="team">設定するチーム</param>
+    /// <param name="flag">true:新しく設定する, false:消去だけ</param>
+    private void SetNewKing(Team team, bool flag)
+    {
+        if (team == Team.None) return;
+
+        //新しいキングを設定
+        if(flag)
+        {
+            //一つ前のKingを消去
+            NetworkManager.Singleton.ConnectedClients[team == Team.Red ? redKing : blueKing].PlayerObject.GetComponent<PlayerController>().ChangeOutlineColorClientRpc(false);
+
+            List<PlayerController> playerControllers = new();
+            foreach(var player in NetworkManager.Singleton.ConnectedClientsList)
+            {
+                PlayerController tmpController = player.PlayerObject.GetComponent<PlayerController>();
+                if (tmpController.team.Value == team) playerControllers.Add(tmpController);
+            }
+
+            //ランダムに選定
+            if (playerControllers.Count < 1) return;
+            PlayerController kingController = playerControllers[Random.Range(0, playerControllers.Count)];
+            if(team == Team.Red)
+            {
+                //アウトライン設定
+                kingController.ChangeOutlineColorClientRpc(true);
+                //ID設定
+                redKing = kingController.OwnerClientId;
+            } else
+            {
+                //アウトライン設定
+                kingController.ChangeOutlineColorClientRpc(true);
+                blueKing = kingController.OwnerClientId;
+            }
+        }
+        //キングを消す
+        else
+        {
+            ulong tmpID = team == Team.Red ? redKing : blueKing;
+            NetworkManager.Singleton.ConnectedClients[tmpID].PlayerObject.gameObject.GetComponent<PlayerController>().ChangeOutlineColorClientRpc(false);
+
+        }
+    }
 
     //ゲームモード変更
     [ServerRpc(RequireOwnership = false)] public void ChangeGameModeServerRpc()
     {
+        switch(gameMode.Value)
+        {
+            case GameMode.Normal:
+                gameMode.Value = GameMode.King;
+                break;
 
+            case GameMode.King:
+                gameMode.Value = GameMode.Normal;
+                break;
+
+            default:
+                gameMode.Value = GameMode.Normal;
+                break;
+        }
     }
 
     //時間変更
@@ -157,7 +260,7 @@ public class BattleManager : NetworkBehaviour
         switch (gameMode.Value)
         {
             case GameMode.Normal:
-                settingString += "Kill To Win";
+                settingString += "Kill";
                 break;
 
             case GameMode.King:
@@ -203,6 +306,11 @@ public class BattleManager : NetworkBehaviour
     private void AddBluePointCallBack(int pre, int next)
     {
         UIManager.instance.AddTeamPoint(next, Team.Blue);
+    }
+
+    private void TimeChangeCallBack(int pre, int next)
+    {
+        UIManager.instance.ChangeTime(next);
     }
 
     private void ResetPoint()

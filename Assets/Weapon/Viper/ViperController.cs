@@ -28,6 +28,7 @@ public class ViperController : WeaponController
 
             //å¸Ç¢ÇƒÇ¢ÇÈå¸Ç´Ç…î≠éÀ
             playerController.ChangeTrionMode(playerController.GetLookingRotaion(), weaponPlace, TrionController.Mode.Controll, playerController.trionPower);
+            if (Input.GetButtonUp(weaponKey)) playerController.audioSource.PlayAudio(6);
 
             trionDuration = 0f;
             trionNum = 0;
@@ -46,7 +47,7 @@ public class ViperController : WeaponController
                 if(UseTrion(trionPointForGeneration))
                 {
                     //èäíËà íuÇ…ê∂ê¨
-                    playerController.GenerateTrion(transform.position + new Vector3(0f, 0.2f * trionNum, 0.2f), Quaternion.identity, trionSize, weaponPlace);
+                    playerController.GenerateTrion(transform.position + new Vector3(0f, 0.2f * trionNum, 0.2f), weaponPlace);
                     playerController.audioSource.PlayAudio(trionNum);
                     trionNum++;
                 } else

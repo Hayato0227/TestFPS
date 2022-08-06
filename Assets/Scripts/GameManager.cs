@@ -6,10 +6,12 @@ using UnityEngine.UI;
 using Unity.Networking.Transport;
 using Unity.Collections;
 using Unity.Netcode.Transports;
+using DG.Tweening;
 
 public class GameManager : NetworkBehaviour
 {
     public static GameManager instance;
+    [SerializeField] private AudioSource audioSource;
 
     public void StartHost()
     {
@@ -64,7 +66,7 @@ public class GameManager : NetworkBehaviour
     void Start()
     {
         instance = this;
-        //Application.targetFrameRate = 60;
+        PlayerBGM(BattleManager.BattlePhase.Lobby);
     }
 
     void Update()
@@ -104,5 +106,27 @@ public class GameManager : NetworkBehaviour
 
         //ƒƒO”½‰f
         logText.text = tmpString;
+    }
+
+    [SerializeField] private AudioClip[] clips;
+    public void PlayerBGM(BattleManager.BattlePhase phase)
+    {
+        int audioClipNum = phase == BattleManager.BattlePhase.Lobby ? 0 : 1;
+        audioSource.DOFade(0f, 1.5f).OnComplete(() =>
+        {
+            audioSource.clip = clips[audioClipNum];
+            audioSource.Play();
+            audioSource.DOFade(0.3f, 1.5f);
+        });
+    }
+    [ClientRpc] public void PlayBGMClientRpc(BattleManager.BattlePhase phase)
+    {
+        PlayerBGM(phase);
+    }
+
+    [SerializeField] private AudioClip[] seClips;
+    [ClientRpc] public void PlayerSEClientRpc(int num)
+    {
+        audioSource.PlayOneShot(seClips[num], 1f);
     }
 }

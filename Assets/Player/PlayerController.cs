@@ -42,7 +42,7 @@ public class PlayerController : NetworkBehaviour
 
     private float maxJumpPower = 10f;
     
-    private float mouseSensitive = 0.5f;
+    private static float mouseSensitive = 0.5f;
     private float trionHealPower = 5f;
 
 
@@ -101,6 +101,7 @@ public class PlayerController : NetworkBehaviour
     void Start()
     {
         playerName.OnValueChanged += ChangePlayerNameCallBack;
+        team.OnValueChanged += ChangeOutlineColorCallBack;
 
         if (IsOwner)
         {
@@ -122,36 +123,22 @@ public class PlayerController : NetworkBehaviour
     private void OnDestroy()
     {
         playerName.OnValueChanged -= ChangePlayerNameCallBack;
+        team.OnValueChanged += ChangeOutlineColorCallBack;
     }
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        if(playerName.Value != "" && !IsOwner)
+        if(playerName.Value != "")
         {
-            playerTag.text = playerName.Value.ToString();
+            if (IsOwner) playerTag.text = "";
+            else playerTag.text = playerName.Value.ToString();
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        //アウトライン変更
-        switch(team.Value)
-        {
-            case BattleManager.Team.Blue:
-                outline.OutlineColor = Color.blue;
-                break;
-
-            case BattleManager.Team.Red:
-                outline.OutlineColor = Color.red;
-                break;
-
-            default:
-                outline.OutlineColor = Color.white;
-                break;
-        }
-
         //全員、フックショットを表示
         if (rightHookShot.Value)
         {
@@ -328,7 +315,7 @@ public class PlayerController : NetworkBehaviour
                     {
                         rig.velocity = -transform.forward * playerSpeed;
                         animator.SetTrigger("WallJump");
-                        Jump(maxJumpPower);
+                        Jump(maxJumpPower / 2f);
                     }
                 }
 
@@ -409,17 +396,16 @@ public class PlayerController : NetworkBehaviour
     }
 
     //クライアント側トリオン生成関数
-    public void GenerateTrion(Vector3 pos, Quaternion rot, Vector3 scale, Place place)
+    public void GenerateTrion(Vector3 pos, Place place)
     {
-        GenerateTrionServerRpc(pos, rot, scale, place, NetworkManager.LocalClientId);
+        GenerateTrionServerRpc(pos, place, NetworkManager.LocalClientId);
     }
 
     //トリオン生成依頼関数
-    [ServerRpc(RequireOwnership =false)] private void GenerateTrionServerRpc(Vector3 pos, Quaternion rot, Vector3 scale, Place place, ulong id)
+    [ServerRpc(RequireOwnership =false)] private void GenerateTrionServerRpc(Vector3 pos, Place place, ulong id)
     {
         //初期設定
-        GameObject tmpTrion = Instantiate(trionPrefab, pos, rot);
-        tmpTrion.transform.localScale = scale;
+        GameObject tmpTrion = Instantiate(trionPrefab, pos, Quaternion.identity);
         tmpTrion.GetComponent<TrionController>().place.Value = place;
         //権限を与えながら生成
         tmpTrion.GetComponent<NetworkObject>().SpawnWithOwnership(id);
@@ -598,9 +584,31 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    private void ChangeOutlineColor()
+    /// <summary>
+    /// クライアントサイドのアウトライン変更関数
+    /// </summary>
+    /// <param name="flag">trueならターゲットになる</param>
+    [ClientRpc] public void ChangeOutlineColorClientRpc(bool flag)
     {
-
+        if(team.Value == BattleManager.Team.Red)
+        {
+            if (flag) ChangeOutlineColor(Color.magenta);
+            else ChangeOutlineColor(Color.red);
+        } else if(team.Value == BattleManager.Team.Blue)
+        {
+            if (flag) ChangeOutlineColor(Color.cyan);
+            else ChangeOutlineColor(Color.blue);
+        }
+    }
+    private void ChangeOutlineColorCallBack(BattleManager.Team pre, BattleManager.Team next)
+    {
+        if (next == BattleManager.Team.Red) ChangeOutlineColor(Color.red);
+        else if (next == BattleManager.Team.Blue) ChangeOutlineColor(Color.blue);
+        else ChangeOutlineColor(Color.white);
+    }
+    private void ChangeOutlineColor(Color color)
+    {
+        outline.OutlineColor = color;
     }
 
     [ServerRpc(RequireOwnership = false)] public void ChangePlayerNameServerRpc(string name)
@@ -609,7 +617,8 @@ public class PlayerController : NetworkBehaviour
     }
     private void ChangePlayerNameCallBack(FixedString32Bytes pre, FixedString32Bytes next)
     {
-        playerTag.text = next.ToString();
+        if (!IsOwner) playerTag.text = next.ToString();
+        else playerTag.text = "";
     }
 } 
  

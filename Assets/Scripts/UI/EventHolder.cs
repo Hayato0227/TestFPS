@@ -46,5 +46,6 @@ public class EventHolder : MonoBehaviour
         {
             transform.DOScaleY(scale.y, 0.5f);
         });
+        GameManager.instance.PlayerSEClientRpc(1);
     }
 }
