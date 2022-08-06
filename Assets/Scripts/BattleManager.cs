@@ -71,16 +71,17 @@ public class BattleManager : NetworkBehaviour
         else
         {
             battlePhase.Value = BattlePhase.Lobby;
-            GameManager.instance.SendLogServerRpc("Game Stopped");
+            GameManager.instance.LogClientRpc("Game Stopped");
             StopAllCoroutines();
             ResetPlayerStatus();
         }
     }
     private IEnumerator GameCoroutine()
     {
-        GameManager tmp = GameManager.instance;
+        int tmpGameTime = battleTime.Value;
+
         ResetPoint();
-        tmp.SendLogServerRpc("Game Starting in ...");
+        GameManager.instance.LogClientRpc("Game Starting in ...");
         battlePhase.Value = BattlePhase.Battle;
 
         yield return new WaitForSeconds(2f);
@@ -88,11 +89,11 @@ public class BattleManager : NetworkBehaviour
 
         for (int i = 3; i > 0; i--)
         {
-            tmp.SendLogServerRpc("Game Starting in " + i.ToString());
+            GameManager.instance.LogClientRpc("Game Starting in " + i.ToString());
             yield return new WaitForSeconds(1f);
         }
 
-        tmp.SendLogServerRpc("Game Start");
+        GameManager.instance.LogClientRpc("Game Start");
         GameManager.instance.PlayerSEClientRpc(0);
 
         //全員を転送
@@ -113,7 +114,7 @@ public class BattleManager : NetworkBehaviour
         }
 
         //ゲーム終了
-        tmp.SendLogServerRpc("Game Over");
+        GameManager.instance.LogClientRpc("Game Over");
         GameManager.instance.PlayerSEClientRpc(0);
         battlePhase.Value = BattlePhase.Lobby;
 
@@ -124,13 +125,14 @@ public class BattleManager : NetworkBehaviour
             SetNewKing(Team.Blue, false);
         }
 
-        if (blueTeamPoint.Value == redTeamPoint.Value) tmp.SendLogServerRpc("Draw!");
-        else tmp.SendLogServerRpc("Team " + (redTeamPoint.Value > blueTeamPoint.Value ? "Red" : "Blue") + " Win!");
+        if (blueTeamPoint.Value == redTeamPoint.Value) GameManager.instance.LogClientRpc("Draw!");
+        else GameManager.instance.LogClientRpc("Team " + (redTeamPoint.Value > blueTeamPoint.Value ? "Red" : "Blue") + " Win!");
 
         yield return new WaitForSeconds(1f);
         GameManager.instance.PlayBGMClientRpc(BattlePhase.Lobby);
         StageManager.Singleton.RespawnClientRpc();
         ResetPlayerStatus();
+        battleTime.Value = tmpGameTime;
     }
 
     //キル
@@ -139,7 +141,7 @@ public class BattleManager : NetworkBehaviour
         PlayerController killerController = NetworkManager.Singleton.ConnectedClients[killer].PlayerObject.gameObject.GetComponent<PlayerController>();
         PlayerController victimController = NetworkManager.Singleton.ConnectedClients[victim].PlayerObject.gameObject.GetComponent<PlayerController>();
 
-        GameManager.instance.SendLogServerRpc(killerController.playerName.Value.ToString() + " killed " + victimController.playerName.Value.ToString() + ".");
+        GameManager.instance.LogClientRpc(killerController.playerName.Value.ToString() + " killed " + victimController.playerName.Value.ToString() + ".");
         Debug.Log(killerController.playerName.Value.ToString() + "(" + killer + ")が" + victimController.playerName.Value.ToString() + "(" + victim + ")をキルしました。");
 
         switch(gameMode.Value)

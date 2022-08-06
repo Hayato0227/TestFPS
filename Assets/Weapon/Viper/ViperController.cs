@@ -12,8 +12,8 @@ public class ViperController : WeaponController
     // Start is called before the first frame update
     public ViperController()
     {
-        maxTrionNum = 5;
-        trionPointForGeneration = 20f;
+        maxTrionNum = 4;
+        trionPointForGeneration = 5f;
         trionNum = 1;
     }
 

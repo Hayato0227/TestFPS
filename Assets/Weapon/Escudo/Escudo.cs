@@ -27,6 +27,9 @@ public class Escudo : NetworkBehaviour
 
         yield return new WaitForSeconds(0.25f);
         isPush = false;
+
+        yield return new WaitForSeconds(30f);
+        if (IsServer) GetComponent<NetworkObject>().Despawn();
     }
 
     private void OnCollisionStay(Collision collision)

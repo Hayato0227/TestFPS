@@ -21,6 +21,7 @@ public class ShieldController : WeaponController
         {
             //大きさ調整
             trionPointForGeneration = 1f + playerController.trionPower / 5f;
+            playerController.audioSource.PlayAudio(4);
             Change(true, trionPointForGeneration);
         }
         //シールドオフ

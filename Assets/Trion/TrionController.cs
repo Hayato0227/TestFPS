@@ -79,16 +79,14 @@ public class TrionController : NetworkBehaviour
     void Update()
     {
         float deltaTime = Time.deltaTime;
-        if(mode != Mode.Equip)
+        if (mode != Mode.Equip)
         {
-            //生存時間を加算
+            //生存時間を加算、時間が過ぎれば消す
             duration += deltaTime * speed;
-        }
-
-        //サーバー側は消去
-        if (IsServer && mode != Mode.Equip)
-        {
-            if (duration > lifeTime) Destroy(gameObject);
+            if (duration > lifeTime)
+            {
+                DestroyServerRpc();
+            }
         }
 
         //クライアントは制御

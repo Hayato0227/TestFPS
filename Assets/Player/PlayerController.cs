@@ -43,24 +43,21 @@ public class PlayerController : NetworkBehaviour
     private float maxJumpPower = 10f;
     
     private static float mouseSensitive = 0.5f;
-    private float trionHealPower = 5f;
+    private float trionHealPower = 50f;
 
 
     //変数(変わる数値)
     private float jumpLongPress = 0f;
     private float unplayableTime = 0f;
     private float playerSpeed = 5f;
-    private float previousHitPoint = 100f;
     private bool isFPS = false;
     public bool isGround = false;
 
     //フックショット用
-    public NetworkVariable<bool> rightHookShot = new(false);
-    public NetworkVariable<bool> leftHookShot = new NetworkVariable<bool>(true);
     [SerializeField] private LineRenderer rightLineRenderer;
     [SerializeField] private LineRenderer leftLineRenderer;
-    public Vector3 rightHookShotPos;
-    public Vector3 leftHookShotPos;
+    public NetworkVariable<Vector3> rightHookShotPos;
+    public NetworkVariable<Vector3> leftHookShotPos;
 
     //武器の数値
     private int rightWeaponNum = 2;
@@ -75,6 +72,7 @@ public class PlayerController : NetworkBehaviour
 
     //プレイヤーステータス
     public float trionPoint = 100f;
+    private float trionPointDutaion = 5f;
     public NetworkVariable<float> hitPoint = new(100f);
     public int trionPower = 0;
 
@@ -102,6 +100,7 @@ public class PlayerController : NetworkBehaviour
     {
         playerName.OnValueChanged += ChangePlayerNameCallBack;
         team.OnValueChanged += ChangeOutlineColorCallBack;
+        if(IsOwner) hitPoint.OnValueChanged += ChangeHPCallBack;
 
         if (IsOwner)
         {
@@ -124,6 +123,7 @@ public class PlayerController : NetworkBehaviour
     {
         playerName.OnValueChanged -= ChangePlayerNameCallBack;
         team.OnValueChanged += ChangeOutlineColorCallBack;
+        if (IsOwner) hitPoint.OnValueChanged -= ChangeHPCallBack;
     }
 
     public override void OnNetworkSpawn()
@@ -140,31 +140,30 @@ public class PlayerController : NetworkBehaviour
     void Update()
     {
         //全員、フックショットを表示
-        if (rightHookShot.Value)
+        if(rightHookShotPos.Value == Vector3.zero)
+        {
+            rightLineRenderer.enabled = false;
+        } else
         {
             rightLineRenderer.enabled = true;
             rightLineRenderer.SetPosition(0, rightHand.transform.position);
-            rightLineRenderer.SetPosition(1, rightHookShotPos);
-        } 
-        else
-        {
-            rightLineRenderer.enabled = false;
+            rightLineRenderer.SetPosition(1, rightHookShotPos.Value);
         }
-        if (leftHookShot.Value)
+        if (leftHookShotPos.Value == Vector3.zero)
+        {
+            leftLineRenderer.enabled = false;
+        }
+        else
         {
             leftLineRenderer.enabled = true;
             leftLineRenderer.SetPosition(0, leftHand.transform.position);
-            leftLineRenderer.SetPosition(1, leftHookShotPos);
-        }
-        else
-        {
-            leftLineRenderer.enabled = false;
+            leftLineRenderer.SetPosition(1, leftHookShotPos.Value);
         }
 
         //地面判定
         isGround = Physics.BoxCast(transform.position, Vector3.one * 0.5f, Vector3.down, Quaternion.identity, 0.8f);
 
-        //自分のみ操作
+        //以降クライアントのみ操作
         if (!IsOwner)
         {
             return;
@@ -180,11 +179,17 @@ public class PlayerController : NetworkBehaviour
             model.SetActive(!model.activeSelf);
         }
 
-        //HP.を反映
-        UIManager.instance.ChangeHP(hitPoint.Value);
-
+        //トリオン回復まで待つ
+        if(trionPointDutaion < 3f)
+        {
+            trionPointDutaion += deltaTime;
+        }
         //トリオン回復
-        trionPoint += trionHealPower * deltaTime;
+        else
+        {
+            trionPoint += trionHealPower * deltaTime;
+        }
+        //オーバーしたら留める
         if (trionPoint > 100f) trionPoint = 100f;
         //トリオンを表示
         UIManager.instance.ChangeTrionPointGUI(trionPoint);
@@ -292,12 +297,13 @@ public class PlayerController : NetworkBehaviour
                 if (Input.GetButtonUp("Jump"))
                 {
                     Jump(jumpLongPress);
-
+                    audioSource.PlayAudio(11);
                     animator.SetBool("IsFlying", true);
                 }
                 //スライディング
                 else if (Input.GetButtonDown("Crouch")) {
                     animator.SetTrigger("Sliding");
+                    audioSource.PlayAudio(12);
                 } 
                 else
                 {
@@ -316,6 +322,7 @@ public class PlayerController : NetworkBehaviour
                         rig.velocity = -transform.forward * playerSpeed;
                         animator.SetTrigger("WallJump");
                         Jump(maxJumpPower / 2f);
+                        audioSource.PlayAudio(9);
                     }
                 }
 
@@ -454,6 +461,9 @@ public class PlayerController : NetworkBehaviour
         //自身の場所に生成
         Instantiate(glassHopperPrefab, pos, rot);
 
+        //グラスホッパーの音を鳴らす
+        audioSource.PlayAudio(7);
+
         //サーバー側に依頼
         TryToGenerateGlassHopperServerRpc(pos, rot, NetworkManager.Singleton.LocalClientId);
     }
@@ -572,15 +582,15 @@ public class PlayerController : NetworkBehaviour
     }
 
     //フックショット反映関数
-    [ServerRpc(RequireOwnership = false)] public void HookShotServerRpc(Place place, bool flag)
+    [ServerRpc(RequireOwnership = false)] public void HookShotServerRpc(Vector3 pos, Place place)
     {
         //右手
         if(place == Place.Right)
         {
-            rightHookShot.Value = flag;
+            rightHookShotPos.Value = pos;
         } else
         {
-            leftHookShot.Value = flag;
+            leftHookShotPos.Value = pos;
         }
     }
 
@@ -619,6 +629,33 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) playerTag.text = next.ToString();
         else playerTag.text = "";
+    }
+
+    /// <summary>
+    /// HPが変更されたときのコールバック
+    /// </summary>
+    /// <param name="prev"></param>
+    /// <param name="next"></param>
+    private void ChangeHPCallBack(float pre, float next)
+    {
+        //HP.を反映
+        UIManager.instance.ChangeHP(pre, next);
+    }
+
+    /// <summary>
+    /// トリオン仕様関数
+    /// </summary>
+    /// <param name="trionValue"></param>
+    /// <returns></returns>
+    public bool UseTrion(float trionValue)
+    {
+        if (trionPoint >= trionValue)
+        {
+            trionPoint -= trionValue;
+            trionPointDutaion = 0f;
+            return true;
+        }
+        return false;
     }
 } 
  

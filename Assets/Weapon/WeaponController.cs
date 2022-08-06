@@ -31,11 +31,6 @@ public class WeaponController : MonoBehaviour
     //ƒgƒŠƒIƒ“‚ªŽg‚¦‚é‚Æ‚«true
     protected bool UseTrion(float useTrion)
     {
-        if(playerController.trionPoint >= useTrion)
-        {
-            playerController.trionPoint -= useTrion;
-            return true;
-        }
-        return false;
+        return playerController.UseTrion(useTrion);
     }
 }

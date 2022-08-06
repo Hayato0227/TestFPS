@@ -60,7 +60,7 @@ public class GameManager : NetworkBehaviour
     private void OnClientDisconnect(ulong clientId)
     {
         Debug.Log("Client : " + clientId + " disconnected.");
-    }
+    }    
 
     // Start is called before the first frame update
     void Start()
@@ -74,11 +74,10 @@ public class GameManager : NetworkBehaviour
 
     }
 
-
     //----------チャット用----------
     //サーバーに送る    
     [ServerRpc(RequireOwnership = false)]
-    public void SendLogServerRpc(string content)
+    public void LogServerRpc(string content)
     {
         LogClientRpc(content);
     }
@@ -86,7 +85,7 @@ public class GameManager : NetworkBehaviour
     //ログ表示
     private Queue<string> logQueue = new Queue<string>();  //ログ用キュー
     [SerializeField] private Text logText;
-    [ClientRpc] private void LogClientRpc(string content)
+    [ClientRpc] public void LogClientRpc(string content)
     {
         //キューに登録
         logQueue.Enqueue(content);
@@ -116,7 +115,7 @@ public class GameManager : NetworkBehaviour
         {
             audioSource.clip = clips[audioClipNum];
             audioSource.Play();
-            audioSource.DOFade(0.3f, 1.5f);
+            audioSource.DOFade(0.2f, 1.5f);
         });
     }
     [ClientRpc] public void PlayBGMClientRpc(BattleManager.BattlePhase phase)

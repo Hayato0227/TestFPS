@@ -22,6 +22,7 @@ public class BarrierController : WeaponController
         {
             //大きさ調整
             trionPointForGeneration = (1f + playerController.trionPower / 10f) * 5f;
+            playerController.audioSource.PlayAudio(10);
             Change(true, trionPointForGeneration);
         }
         //シールドオフ

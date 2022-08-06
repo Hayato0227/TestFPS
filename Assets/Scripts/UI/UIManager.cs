@@ -115,28 +115,21 @@ public class UIManager : MonoBehaviour
     }
 
     //ダメージ表示関数
-    private float hitPoint = 100f;
-    public void ChangeHP(float value)
+    public void ChangeHP(float prev, float next)
     {
-        if (hitPoint == value) return;
-
-        //HPバーを動かす
-        if (Mathf.Abs(hitPoint - value) >= 5) hpSlider.DOValue(value, hpDuration);
-        else hpSlider.value = value;
-
-        //ダメージ、回復表示
-        if(hitPoint > value)
+        //ダメージ
+        if(prev > next)
         {
-            //ダメージ
 
-
-        } else if (hitPoint < value){
-            //回復
-
+        }
+        //回復
+        else
+        {
 
         }
 
-        hitPoint = value;
+        //HPバーを動かす
+        hpSlider.DOValue(next, hpDuration);
     }
 
     //UI表示関数

@@ -11,8 +11,8 @@ public class AsteroidController : WeaponController
 
     public AsteroidController()
     {
-        maxTrionNum = 5;
-        trionPointForGeneration = 10f;
+        maxTrionNum = 4;
+        trionPointForGeneration = 2.5f;
         trionNum = 0;
     }
 

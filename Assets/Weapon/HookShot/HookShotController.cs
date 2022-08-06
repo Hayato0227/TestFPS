@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class HookShotController : WeaponController
 {
+    public HookShotController()
+    {
+        trionPointForGeneration = 15f;
+    }
+
     private SpringJoint springJoint;
 
     // Update is called once per frame
@@ -21,25 +26,22 @@ public class HookShotController : WeaponController
                 {
                     if(!hit.transform.root.CompareTag("Player"))
                     {
-                        //フックショット描画開始
-                        playerController.HookShotServerRpc(weaponPlace, true);
-
-                        //スプリングジョイントを設定
-                        springJoint = transform.root.gameObject.AddComponent<SpringJoint>();      
-
-                        //くっつきを設定
-                        springJoint.autoConfigureConnectedAnchor = false;
-                        springJoint.massScale = playerController.GetComponent<Rigidbody>().mass / 2f;
-                        springJoint.connectedAnchor = hit.point;
-
-                        //線の描画の位置を設定
-                        if (weaponPlace == PlayerController.Place.Right)
+                        if(UseTrion(trionPointForGeneration))
                         {
-                            playerController.rightHookShotPos = hit.point;
-                        }
-                        else
-                        {
-                            playerController.leftHookShotPos = hit.point;
+                            //フックショット描画開始
+                            playerController.HookShotServerRpc(hit.point, weaponPlace);
+
+                            //フックショットの音を鳴らす
+                            playerController.audioSource.PlayAudio(8);
+
+                            //スプリングジョイントを設定
+                            springJoint = transform.root.gameObject.AddComponent<SpringJoint>();
+
+                            //くっつきを設定
+                            springJoint.autoConfigureConnectedAnchor = false;
+                            springJoint.massScale = playerController.GetComponent<Rigidbody>().mass / 2f;
+                            springJoint.connectedAnchor = hit.point;
+
                         }
                         break;
                     }
@@ -48,7 +50,7 @@ public class HookShotController : WeaponController
         }
         else if(Input.GetButtonUp(weaponKey))
         {
-            playerController.HookShotServerRpc(weaponPlace, false);
+            playerController.HookShotServerRpc(Vector3.zero, weaponPlace);
             Destroy(springJoint);
         }
 
@@ -61,7 +63,7 @@ public class HookShotController : WeaponController
 
     private void OnDestroy()
     {
-        playerController.HookShotServerRpc(weaponPlace, false);
+        playerController.HookShotServerRpc(Vector3.zero, weaponPlace);
         Destroy(springJoint);
     }
 }

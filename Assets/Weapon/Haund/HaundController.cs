@@ -11,8 +11,8 @@ public class HaundController : WeaponController
 
     public HaundController()
     {
-        maxTrionNum = 5;
-        trionPointForGeneration = 30f;
+        maxTrionNum = 4;
+        trionPointForGeneration = 15f;
         trionNum = 1;
     }
 

@@ -2951,13 +2951,19 @@ MonoBehaviour:
   m_AudioSourceForStep: {fileID: 7966529072741001922}
   m_AudioSourceForSoundEffect: {fileID: 8578482332585430013}
   clips:
-  - {fileID: 8300000, guid: 8327adfc17ca04b4ead7e596fc6c81b9, type: 3}
-  - {fileID: 8300000, guid: 890d8159111417f478d77b7ccedc384c, type: 3}
-  - {fileID: 8300000, guid: 73598839cd253b6489ac78c78da99676, type: 3}
-  - {fileID: 8300000, guid: 1016f9a34b844c54c909e3d3fefe6e97, type: 3}
-  - {fileID: 8300000, guid: bb494255ac032514a88ed2c3865cbdea, type: 3}
+  - {fileID: 8300000, guid: fcc6ca68e64d7974385fcfa5dc743d73, type: 3}
+  - {fileID: 8300000, guid: f4ad05d4a078e5849803f78431f86735, type: 3}
+  - {fileID: 8300000, guid: 370707913b01bff49a635152b6c97fba, type: 3}
+  - {fileID: 8300000, guid: e0942a35b643bb6489c401b06d387541, type: 3}
+  - {fileID: 8300000, guid: c6389ec0cfd6de540b638a7f08a6dc30, type: 3}
   - {fileID: 8300000, guid: 3387e022f56f48f4d91ca6a68cce745f, type: 3}
   - {fileID: 8300000, guid: 28b4c9e758938064eba269248aa8efc1, type: 3}
+  - {fileID: 8300000, guid: 4ec68211721ba384ba975810c59560c0, type: 3}
+  - {fileID: 8300000, guid: 1e74ae661bb65b7459e472c3f50bbace, type: 3}
+  - {fileID: 8300000, guid: 1c2004dff097e2947a80bb74512e698d, type: 3}
+  - {fileID: 8300000, guid: 1289ec42884390640a5cc3e75736f5fe, type: 3}
+  - {fileID: 8300000, guid: 5976f3710842e244a89769e085469853, type: 3}
+  - {fileID: 8300000, guid: 0c6d276df1e585f4d853251aa20c57cc, type: 3}
 --- !u!114 &5604567636080645753
 MonoBehaviour:
   m_ObjectHideFlags: 0
