@@ -44,6 +44,7 @@ public class TrionController : NetworkBehaviour
     private float lifeTime = 200.0f;
     private float duration = 0f;
     public float speed = 0f;
+    private float slowDuration = 0f;
 
     private void Start()
     {
@@ -92,6 +93,12 @@ public class TrionController : NetworkBehaviour
         //クライアントは制御
         if (IsOwner)
         {
+            if(slowDuration > 0f)
+            {
+                slowDuration -= Time.deltaTime;
+                if (slowDuration <= 0f) SetTrionSpeed(Speed.NormalSpeed);
+            }
+
             //モードでそれぞれの処理を変更
             if(mode == Mode.Chase && targetObj != null)
             {
@@ -130,7 +137,7 @@ public class TrionController : NetworkBehaviour
             //敵のダメージ関数を呼ぶ
             other.transform.root.GetComponent<PlayerController>().DamageServerRpc(transform.localScale.x * 100f, NetworkManager.Singleton.LocalClientId);
 
-            //アタックオンを鳴らす
+            //アタック音を鳴らす
             GameManager.instance.audioSource.PlayOneShot(GameManager.instance.seClips[2], 1f);
 
             //自身を消去
@@ -207,5 +214,6 @@ public class TrionController : NetworkBehaviour
                 this.speed = 0f;
                 break;
         }
+        slowDuration = 0.1f;
     }
 }
