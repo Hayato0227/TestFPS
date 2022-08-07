@@ -11,7 +11,7 @@ using DG.Tweening;
 public class GameManager : NetworkBehaviour
 {
     public static GameManager instance;
-    [SerializeField] private AudioSource audioSource;
+    public AudioSource audioSource;
 
     public void StartHost()
     {
@@ -71,7 +71,17 @@ public class GameManager : NetworkBehaviour
 
     void Update()
     {
-
+        if(Input.GetButtonDown("FullScreen"))
+        {
+            if(!Screen.fullScreen)
+            {
+                Screen.SetResolution(Display.main.systemWidth, Display.main.systemWidth, true);
+            }
+            else
+            {
+                Screen.fullScreen = false;
+            }
+        }
     }
 
     //----------チャット用----------
@@ -123,9 +133,14 @@ public class GameManager : NetworkBehaviour
         PlayerBGM(phase);
     }
 
-    [SerializeField] private AudioClip[] seClips;
+    public AudioClip[] seClips;
     [ClientRpc] public void PlayerSEClientRpc(int num)
     {
         audioSource.PlayOneShot(seClips[num], 1f);
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
     }
 }

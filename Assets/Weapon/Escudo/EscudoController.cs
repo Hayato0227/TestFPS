@@ -22,7 +22,7 @@ public class EscudoController : WeaponController
         {
             if(UseTrion(10f + playerController.trionPower * 2f))
             {
-                playerController.GenerateEscudoServerRpc(previewObject.transform.position, previewObject.transform.rotation, previewObject.transform.localScale.x, NetworkManager.Singleton.LocalClientId);
+                playerController.GenerateEscudoServerRpc(previewObject.transform.position, previewObject.transform.rotation, previewObject.transform.localScale.x);
                 playerController.audioSource.PlayAudio(5);
             }
             Destroy(previewObject);

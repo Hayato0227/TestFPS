@@ -25,6 +25,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] GameObject settingPanel;
     [SerializeField] GameObject gamePanel;
 
+    //ダメージ用パネル
+    [SerializeField] private Image damagePanel;
+
+
     [SerializeField] private GameObject targetObject;
 
     //ゲーム中パネル
@@ -66,13 +70,25 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
-        if(BattleManager.Singleton.battlePhase.Value == BattleManager.BattlePhase.Lobby)
+        //消えてるときは出す
+        if(!settingPanel.activeSelf)
         {
-            //設定キーが押されたら表示
-            if (Input.GetButtonDown("Setting"))
+            if(BattleManager.Singleton.battlePhase.Value == BattleManager.BattlePhase.Lobby)
             {
-                ToggleUI(UIName.Setting, !settingPanel.activeSelf);
-                Cursor.lockState = settingPanel.activeSelf ? CursorLockMode.None : CursorLockMode.Locked;
+                if(Input.GetButtonDown("Setting"))
+                {
+                    ToggleUI(UIName.Setting, true);
+                    Cursor.lockState = CursorLockMode.None;
+                }
+            }
+        }
+        //出てるときは消す
+        else
+        {
+            if(Input.GetButtonDown("Setting"))
+            {
+                ToggleUI(UIName.Setting, false);
+                Cursor.lockState = CursorLockMode.Locked;
             }
         }  
     }
@@ -120,7 +136,11 @@ public class UIManager : MonoBehaviour
         //ダメージ
         if(prev > next)
         {
-
+            GameManager.instance.audioSource.PlayOneShot(GameManager.instance.seClips[3], 1f);
+            damagePanel.DOFade(0.25f, 0.2f).OnComplete(() =>
+            {
+                damagePanel.DOFade(0f, 0.2f);
+            });
         }
         //回復
         else

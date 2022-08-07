@@ -128,7 +128,10 @@ public class TrionController : NetworkBehaviour
             if (other.transform.root.gameObject == NetworkManager.Singleton.LocalClient.PlayerObject.gameObject) return;
 
             //敵のダメージ関数を呼ぶ
-            other.transform.root.GetComponent<PlayerController>().DamageServerRpc(transform.localScale.x * 50f, NetworkManager.Singleton.LocalClientId);
+            other.transform.root.GetComponent<PlayerController>().DamageServerRpc(transform.localScale.x * 100f, NetworkManager.Singleton.LocalClientId);
+
+            //アタックオンを鳴らす
+            GameManager.instance.audioSource.PlayOneShot(GameManager.instance.seClips[2], 1f);
 
             //自身を消去
             DestroyServerRpc();

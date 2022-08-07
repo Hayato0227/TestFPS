@@ -4,7 +4,7 @@ using UnityEngine;
 using DG.Tweening;
 using Unity.Netcode;
 
-public class Escudo : NetworkBehaviour
+public class Escudo : MonoBehaviour
 {
     private static float escudoJumpPower = 20f;
     private bool isPush = false;
@@ -16,11 +16,7 @@ public class Escudo : NetworkBehaviour
     private IEnumerator escudoCoroutine()
     {
         //大きくする
-        if (IsServer)
-        {
-            //サイズを変更する
-            transform.DOScaleY(transform.localScale.x, 1.5f).SetEase(Ease.InExpo);
-        }
+        transform.DOScaleY(transform.localScale.x, 1.5f).SetEase(Ease.InExpo);
 
         yield return new WaitForSeconds(1.25f);
         isPush = true;
@@ -28,8 +24,10 @@ public class Escudo : NetworkBehaviour
         yield return new WaitForSeconds(0.25f);
         isPush = false;
 
-        yield return new WaitForSeconds(30f);
-        if (IsServer) GetComponent<NetworkObject>().Despawn();
+        yield return new WaitForSeconds(10f);
+        yield return transform.DOScaleY(0f, 1.5f).WaitForCompletion();
+
+        Destroy(gameObject);
     }
 
     private void OnCollisionStay(Collision collision)

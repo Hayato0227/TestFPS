@@ -11,17 +11,16 @@ public class TeamManager : NetworkBehaviour
         
     }
 
+    private bool flag = false;
     // Update is called once per frame
     void Update()
     {
         //情報表示キーが押されたら表示
         if (Input.GetButtonDown("Information"))
         {
-            UIManager.instance.ToggleUI(UIManager.UIName.Information, true);
-        } 
-        else if(Input.GetButtonUp("Information")) //表示キーが離されたら非表示
-        {
-            UIManager.instance.ToggleUI(UIManager.UIName.Information, false);
+            flag = !flag;
+            UIManager.instance.ToggleUI(UIManager.UIName.Information, flag);
+            Cursor.lockState = flag ? CursorLockMode.None : CursorLockMode.Locked;
         }
     }
 

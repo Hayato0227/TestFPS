@@ -42,7 +42,7 @@ public class PlayerController : NetworkBehaviour
 
     private float maxJumpPower = 10f;
     
-    private static float mouseSensitive = 0.5f;
+    public static float mouseSensitive = 0.5f;
     private float trionHealPower = 50f;
 
 
@@ -168,6 +168,9 @@ public class PlayerController : NetworkBehaviour
         {
             return;
         }
+
+        //落ちたときのリスポーン
+        if (transform.position.y < -50f) StageManager.Singleton.Respawn(gameObject, team.Value);
 
         //良く使う変数は予め取得しておく
         float deltaTime = Time.deltaTime;
@@ -485,11 +488,14 @@ public class PlayerController : NetworkBehaviour
     }
 
     //サーバー側エスクード生成関数
-    [ServerRpc(RequireOwnership = false)] public void GenerateEscudoServerRpc(Vector3 pos, Quaternion rot, float size, ulong id)
+    [ServerRpc(RequireOwnership = false)] public void GenerateEscudoServerRpc(Vector3 pos, Quaternion rot, float size)
+    {
+        GenerateEscudoClientRpc(pos, rot, size);
+    }
+    [ClientRpc] private void GenerateEscudoClientRpc(Vector3 pos, Quaternion rot, float size)
     {
         GameObject tmpEscudo = Instantiate(escudoPrefab, pos, rot);
         tmpEscudo.transform.localScale = new Vector3(size, 0f, size);
-        tmpEscudo.GetComponent<NetworkObject>().SpawnWithOwnership(id);
     }
 
     //視点の先に居るモノを取得
@@ -507,16 +513,26 @@ public class PlayerController : NetworkBehaviour
     //右手の武器を変更
     private void NextRightWeapon()
     {
-        if (rightTriggerName[rightWeaponNum] == "") return;
+        //空いてるのはスキップする用
+        for(int i = 0; i < 3; i++)
+        {
+            //一つ前を消す
+            if (rightTriggerName[rightWeaponNum] != "")
+            {
+                Destroy(rightHand.GetComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller")));
+            }
 
-        //一つ前を消す
-        Destroy(rightHand.GetComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller")));
-        //一つ前にする
-        rightWeaponNum = (rightWeaponNum + 1) % 3;
+            //一つ進める
+            rightWeaponNum = (rightWeaponNum + 1) % 3;
 
-        //コントローラーを設定
-        WeaponController weaponCon = (WeaponController)rightHand.AddComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller"));
-        weaponCon.Initialize(this, Place.Right);
+            if (rightTriggerName[rightWeaponNum] != "")
+            {
+                //コントローラーを設定
+                WeaponController weaponCon = (WeaponController)rightHand.AddComponent(Type.GetType(rightTriggerName[rightWeaponNum] + "Controller"));
+                weaponCon.Initialize(this, Place.Right);
+                break;
+            }
+        }
 
         WeaponUIManager.instance.ChangeWeapon(rightWeaponNum, Place.Right);
     }
@@ -524,16 +540,26 @@ public class PlayerController : NetworkBehaviour
     //左手の武器を変える
     private void NextLeftWeapon()
     {
-        if (leftTriggerName[leftWeaponNum] == "") return;
+        //空いてるのはスキップする用
+        for (int i = 0; i < 3; i++)
+        {
+            //一つ前を消す
+            if (leftTriggerName[leftWeaponNum] != "")
+            {
+                Destroy(leftHand.GetComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller")));
+            }
 
-        //一つ前を消す
-        Destroy(leftHand.GetComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller")));
-        //一つ前にする
-        leftWeaponNum = (leftWeaponNum + 1) % 3;
+            //一つ進める
+            leftWeaponNum = (leftWeaponNum + 1) % 3;
 
-        //コントローラーを設定
-        WeaponController weaponCon = (WeaponController)leftHand.AddComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller"));
-        weaponCon.Initialize(this, Place.Left);
+            if (leftTriggerName[leftWeaponNum] != "")
+            {
+                //コントローラーを設定
+                WeaponController weaponCon = (WeaponController)leftHand.AddComponent(Type.GetType(leftTriggerName[leftWeaponNum] + "Controller"));
+                weaponCon.Initialize(this, Place.Left);
+                break;
+            }
+        }
 
         WeaponUIManager.instance.ChangeWeapon(leftWeaponNum, Place.Left);
     }

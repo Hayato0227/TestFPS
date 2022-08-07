@@ -17,12 +17,12 @@ public class ClientNetworkRigidbody : NetworkBehaviour
         if (IsOwner) SendInformationServerRpc(m_Rigidbody.velocity);
     }
 
-    [ServerRpc(RequireOwnership = false)] private void SendInformationServerRpc(Vector3 vel)
+    [ServerRpc(RequireOwnership = false, Delivery = RpcDelivery.Unreliable)] private void SendInformationServerRpc(Vector3 vel)
     {
         ReceiveInformationClientRpc(vel);
     }
 
-    [ClientRpc] private void ReceiveInformationClientRpc(Vector3 vel)
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)] private void ReceiveInformationClientRpc(Vector3 vel)
     {
         if (IsOwner) return;
         m_Rigidbody.velocity = vel;

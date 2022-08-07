@@ -72,6 +72,7 @@ public class BattleManager : NetworkBehaviour
         {
             battlePhase.Value = BattlePhase.Lobby;
             GameManager.instance.LogClientRpc("Game Stopped");
+            GameManager.instance.PlayerSEClientRpc(0);
             StopAllCoroutines();
             ResetPlayerStatus();
         }
@@ -194,9 +195,13 @@ public class BattleManager : NetworkBehaviour
         //新しいキングを設定
         if(flag)
         {
+            Debug.Log("Generating New King");
             //一つ前のKingを消去
-            NetworkManager.Singleton.ConnectedClients[team == Team.Red ? redKing : blueKing].PlayerObject.GetComponent<PlayerController>().ChangeOutlineColorClientRpc(false);
-
+            if (NetworkManager.Singleton.ConnectedClients.ContainsKey(team == Team.Red ? redKing : blueKing))
+            {
+                NetworkManager.Singleton.ConnectedClients[team == Team.Red ? redKing : blueKing].PlayerObject.GetComponent<PlayerController>().ChangeOutlineColorClientRpc(false);
+            }
+            
             List<PlayerController> playerControllers = new();
             foreach(var player in NetworkManager.Singleton.ConnectedClientsList)
             {
